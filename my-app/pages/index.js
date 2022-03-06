@@ -22,6 +22,7 @@ export default function Home() {
     const provider = await web3ModalRef.current.connect();
     const web3Provider = new providers.Web3Provider(provider);
 
+    // If user is not connected to the Rinkeby network, let them know and throw an error
     const { chainId } = await web3Provider.getNetwork();
     if (chainId !== 4) {
       window.alert("Change the network to Rinkeby");
@@ -34,16 +35,23 @@ export default function Home() {
     }
     return web3Provider;
   };
+
+  /**
+   * addAddressToWhitelist: Adds the current connected address to the whitelist
+   */
   const addAddressToWhitelist = async () => {
     try {
+      // We need a Signer here since this is a 'write' transaction.
       const signer = await getProviderOrSigner(true);
+      // Create a new instance of the Contract with a Signer, which allows
+      // update methods
       const whitelistContract = new Contract(
         WHITELIST_CONTRACT_ADDRESS,
         abi,
         signer
       );
       // call the addAddressToWhitelist from the contract
-      const tx = await whitelistContract.addWhitelistAddress();
+      const tx = await whitelistContract.addAddressToWhitelist();
       setLoading(true);
       // wait for the transaction to get mined
       await tx.wait();
@@ -55,83 +63,83 @@ export default function Home() {
       console.error(err);
     }
   };
-
   const getNumberOfWhitelisted = async () => {
     try {
       // Get the provider from web3Modal, which in our case is MetaMask
       // No need for the Signer here, as we are only reading state from the blockchain
       const provider = await getProviderOrSigner();
-      // We connect to the Contract using a Provider, so we will only
-      // have read-only access to the Contract
       const whitelistContract = new Contract(
         WHITELIST_CONTRACT_ADDRESS,
         abi,
         provider
       );
       // call the numAddressesWhitelisted from the contract
-      const _numberOfWhitelisted = await whitelistContract.numWhitelistedAddresses();
+      const _numberOfWhitelisted = await whitelistContract.numAddressesWhitelisted();
       setNumberOfWhitelisted(_numberOfWhitelisted);
-      console.log(numberOfWhitelisted);
     } catch (err) {
       console.error(err);
     }
   };
-  const checkIfAddressInWhitelist = async() =>{
-      try{
-        const signer= await getProviderOrSigner(true);
-        const address = signer.getAddress();
-        console.log(address);
-        const whitelistContract = new Contract(
-          WHITELIST_CONTRACT_ADDRESS,
-          abi,
-          signer
-        );
-        const _joinedWhitelist= await whitelistContract.whitelistedAddresses(address);
-        setJoinedWhitelist(_joinedWhitelist);
-        console.log(joinedWhitelist);
-      }catch(err){
-        console.log(err);
-      }
-  }
-  const connectWallet = async() => {
-    try{
+
+  const checkIfAddressInWhitelist = async () => {
+    try {
+      const signer = await getProviderOrSigner(true);
+      const whitelistContract = new Contract(
+        WHITELIST_CONTRACT_ADDRESS,
+        abi,
+        signer
+      );
+      // Get the address associated to the signer which is connected to  MetaMask
+      const address = await signer.getAddress();
+      const _joinedWhitelist = await whitelistContract.whitelistedAddresses(
+        address
+      );
+      setJoinedWhitelist(_joinedWhitelist);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const connectWallet = async () => {
+    try {
+      // Get the provider from web3Modal, which in our case is MetaMask
+      // When used for the first time, it prompts the user to connect their wallet
       await getProviderOrSigner();
       setWalletConnected(true);
+
       checkIfAddressInWhitelist();
       getNumberOfWhitelisted();
-    }catch(err){
-      console.log(err);
+    } catch (err) {
+      console.error(err);
     }
-  }
-  const renderButton = () =>{
-    if(walletConnected){
-      if(joinedWhitelist){
-        return(
-        <div className={styles.description}>
-        Thanks for joining the Whitelist!
-      </div>
-        )
-      }else if(loading){
+  };
+
+  const renderButton = () => {
+    if (walletConnected) {
+      if (joinedWhitelist) {
+        return (
+          <div className={styles.description}>
+            Thanks for joining the Whitelist!
+          </div>
+        );
+      } else if (loading) {
         return <button className={styles.button}>Loading...</button>;
-      }else{
-        return(
-        <button onClick={addAddressToWhitelist} className={styles.button}>
+      } else {
+        return (
+          <button onClick={addAddressToWhitelist} className={styles.button}>
             Join the Whitelist
-        </button>
-        )
+          </button>
+        );
       }
-    }else{
-        return(
-          <>
-            <button onClick={connectWallet} className={styles.button}>
-              Connect your wallet
-            </button>
-          </>
-        )
+    } else {
+      return (
+        <button onClick={connectWallet} className={styles.button}>
+          Connect your wallet
+        </button>
+      );
     }
-  }
+  };
+
   useEffect(() => {
-    // if wallet is not connected, create a new instance of Web3Modal and connect the MetaMask wallet
     if (!walletConnected) {
       // Assign the Web3Modal class to the reference object by setting it's `current` value
       // The `current` value is persisted throughout as long as this page is open
@@ -143,18 +151,17 @@ export default function Home() {
       connectWallet();
     }
   }, [walletConnected]);
+
   return (
     <div>
       <Head>
-        <title>Whitelist Daap</title>
-        <meta name="description" content="Whitelist-Daap" />
+        <title>Whitelist Dapp</title>
+        <meta name="description" content="Whitelist-Dapp" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className={styles.main}>
-      <div>
-        <h1 className={styles.title}>
-          Welcome to Crypto Devs!
-        </h1>
+      <div className={styles.main}>
+        <div>
+          <h1 className={styles.title}>Welcome to Crypto Devs!</h1>
           <div className={styles.description}>
             Its an NFT collection for developers in Crypto.
           </div>
@@ -164,13 +171,13 @@ export default function Home() {
           {renderButton()}
         </div>
         <div>
-            <img className={styles.image} src="./crypto-devs.svg" />
+          <img className={styles.image} src="./crypto-devs.svg" />
         </div>
-      </main>
+      </div>
 
       <footer className={styles.footer}>
-      Made with &#10084; by Crypto Devs
+        Made with &#10084; by Crypto Devs
       </footer>
     </div>
-  )
+  );
 }
