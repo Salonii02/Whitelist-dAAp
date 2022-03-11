@@ -53,7 +53,8 @@
          Connect to Metamask
          Since we store `web3Modal` as a reference, we need to access the `current` value to get access to the underlying object
             const provider = await web3ModalRef.current.connect();  -> this we got the provider from web3mod
-         So you're using web3modal as your provider, the default provider option would just inject metamask into your browser. 
+         So you're using web3modal as your provider, 
+         the default provider option would just inject metamask into your browser. 
          It's stored in the provider variable.
          wrapping an existing provider and exposing it as ether.js Provider. create a new instance (reference) of the provider
             const web3Provider = new providers.Web3Provider(provider)
